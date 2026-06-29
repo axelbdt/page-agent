@@ -22,7 +22,7 @@ export class PageAgent extends PageAgentCore {
 		super({ ...config, pageController })
 
 		this.panel = new Panel(this, {
-			language: config.language,
+			language: config.language === 'zh-CN' ? 'zh-CN' : 'en-US',
 			promptForNextTask: config.promptForNextTask,
 		})
 	}

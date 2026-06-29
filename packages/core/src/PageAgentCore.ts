@@ -477,7 +477,12 @@ export class PageAgentCore extends EventTarget {
 			return this.config.customSystemPrompt
 		}
 
-		const targetLanguage = this.config.language === 'zh-CN' ? '中文' : 'English'
+		const languageNames: Record<string, string> = {
+			'zh-CN': '中文',
+			'fr-FR': 'Français',
+			'es-ES': 'Español',
+		}
+		const targetLanguage = languageNames[this.config.language ?? ''] ?? 'English'
 		const systemPrompt = SYSTEM_PROMPT.replace(
 			/Default working language: \*\*.*?\*\*/,
 			`Default working language: **${targetLanguage}**`
