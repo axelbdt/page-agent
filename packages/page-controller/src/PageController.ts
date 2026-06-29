@@ -8,8 +8,11 @@
  */
 import {
 	clickElement,
+	getAccessibleName,
 	getElementByIndex,
+	getLiveElement,
 	inputTextElement,
+	readToggleState,
 	scrollHorizontally,
 	scrollVertically,
 	selectOptionElement,
@@ -246,6 +249,10 @@ export class PageController extends EventTarget {
 			this.assertIndexed()
 			const element = getElementByIndex(this.selectorMap, index)
 			const elemText = this.elementTextMap.get(index)
+
+			// Capture toggle state before the click so we can report the transition.
+			const before = readToggleState(element)
+
 			await clickElement(element)
 
 			// Handle links that open in new tabs
@@ -253,6 +260,26 @@ export class PageController extends EventTarget {
 				return {
 					success: true,
 					message: `✅ Clicked element (${elemText ?? index}). ⚠️ Link opened in a new tab.`,
+				}
+			}
+
+			// For toggle-like controls (switch / checkbox / aria-pressed / Radix data-state),
+			// re-read the live element and report the resulting ON/OFF state in plain language.
+			// Bare boolean attributes (e.g. `aria-checked=false`) are easily misread by the model
+			// as "the action failed", causing it to click the same toggle again and again. An
+			// explicit post-action state breaks that loop.
+			const after = readToggleState(getLiveElement(element))
+			if (before || after) {
+				const state = after ?? before!
+				const name = getAccessibleName(element) || elemText || `element ${index}`
+				const stateText = state.on ? 'ON (enabled)' : 'OFF (disabled)'
+				const transition =
+					before && after && before.on !== after.on
+						? ` It changed from ${before.on ? 'ON' : 'OFF'} to ${after.on ? 'ON' : 'OFF'}.`
+						: ' Its state did not change.'
+				return {
+					success: true,
+					message: `✅ Clicked the "${name}" toggle. It is now ${stateText} [${state.raw}].${transition} If this already matches the goal, do NOT click it again.`,
 				}
 			}
 

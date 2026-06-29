@@ -41,6 +41,89 @@ export function getElementByIndex(
 	return element
 }
 
+const TOGGLE_ROLES = new Set(['switch', 'checkbox', 'radio', 'menuitemcheckbox', 'menuitemradio'])
+
+/** A toggleable control and its current on/off state, as the model should understand it. */
+export interface ToggleState {
+	on: boolean
+	/** Raw value reported to the model for transparency (aria-checked / aria-pressed / data-state). */
+	raw: string
+}
+
+/**
+ * Read the on/off state of a toggle-like control (switch, checkbox, aria-pressed
+ * button, Radix `data-state`). Returns null when the element is not a toggle, so
+ * callers can fall back to a generic click message.
+ *
+ * @private Internal method, subject to change at any time.
+ */
+export function readToggleState(element: HTMLElement): ToggleState | null {
+	const role = element.getAttribute('role')
+	const ariaChecked = element.getAttribute('aria-checked')
+	const ariaPressed = element.getAttribute('aria-pressed')
+	const dataState = element.getAttribute('data-state')
+
+	const isToggle =
+		(role !== null && TOGGLE_ROLES.has(role)) ||
+		ariaChecked !== null ||
+		ariaPressed !== null ||
+		dataState === 'checked' ||
+		dataState === 'unchecked' ||
+		(isInputElement(element) && (element.type === 'checkbox' || element.type === 'radio'))
+
+	if (!isToggle) return null
+
+	if (ariaChecked !== null)
+		return { on: ariaChecked === 'true', raw: `aria-checked=${ariaChecked}` }
+	if (ariaPressed !== null)
+		return { on: ariaPressed === 'true', raw: `aria-pressed=${ariaPressed}` }
+	if (dataState === 'checked' || dataState === 'unchecked')
+		return { on: dataState === 'checked', raw: `data-state=${dataState}` }
+	if (isInputElement(element)) return { on: element.checked, raw: `checked=${element.checked}` }
+	return null
+}
+
+/**
+ * Re-fetch the live element after a click. Controlled React toggles re-render,
+ * which may replace the node; resolving by id returns the current node so its
+ * post-click state is read accurately.
+ *
+ * @private Internal method, subject to change at any time.
+ */
+export function getLiveElement(element: HTMLElement): HTMLElement {
+	if (element.id) {
+		const byId = element.ownerDocument.getElementById(element.id)
+		if (byId instanceof HTMLElement) return byId
+	}
+	return element
+}
+
+/**
+ * Best-effort accessible name for an interactive element, used to refer to it in
+ * action feedback without the noisy attribute dump from the serialized tree.
+ *
+ * @private Internal method, subject to change at any time.
+ */
+export function getAccessibleName(element: HTMLElement): string {
+	const ariaLabel = element.getAttribute('aria-label')?.trim()
+	if (ariaLabel) return ariaLabel
+
+	const labelledBy = element.getAttribute('aria-labelledby')
+	if (labelledBy) {
+		const text = labelledBy
+			.split(/\s+/)
+			.map((id) => element.ownerDocument.getElementById(id)?.textContent?.trim() ?? '')
+			.filter(Boolean)
+			.join(' ')
+		if (text) return text
+	}
+
+	const text = element.textContent?.trim()
+	if (text) return text
+
+	return ''
+}
+
 let lastClickedElement: HTMLElement | null = null
 
 function blurLastClickedElement() {

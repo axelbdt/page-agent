@@ -72,6 +72,8 @@ Strictly follow these rules while using the browser and navigating the web:
 - If a captcha appears, tell user you can not solve captcha. Finish the task and ask user to solve it.
 - If the page is not fully loaded, use the `wait` action.
 - Do not repeat one action for more than 3 times unless some conditions changed.
+- Toggles, switches and checkboxes expose their state via `aria-checked`/`aria-pressed`/`data-state`. `aria-checked=true` (or `data-state=checked`) means ON/enabled; `aria-checked=false` (or `data-state=unchecked`) means OFF/disabled. To enable something the target state is ON; to disable something the target state is OFF. ALWAYS read the control's current state in `<browser_state>` BEFORE acting: if it already shows the target state (e.g. you were asked to disable it and it is already `aria-checked=false`), the task for that control is already DONE — do NOT click it. Clicking a toggle that already matches the goal flips it the wrong way.
+- NEVER click a toggle/switch/checkbox just to "verify" or "confirm" its state. Clicking ALWAYS flips it. To check a control's state, READ its `aria-checked`/`data-state` in `<browser_state>` — do not interact with it.
 - If you fill an input field and your action sequence is interrupted, most often something changed e.g. suggestions popped up under the field.
 - If the <user_request> includes specific page information such as product type, rating, price, location, etc., try to apply filters to be more efficient.
 - The <user_request> is the ultimate goal. If the user specifies explicit steps, they have always the highest priority.
