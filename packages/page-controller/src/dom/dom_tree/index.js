@@ -19,6 +19,7 @@
  * @edit exclude aria-hidden elements
  * @edit make sure attributes exist for interactive candidates.
  * @edit fix "aria-*" attributes check
+ * @edit add `data-page-agent-readonly` attribute
  */
 
 export default (
@@ -1419,6 +1420,14 @@ export default (
    */
 	function handleHighlighting(nodeData, node, parentIframe, isParentHighlighted) {
 		if (!nodeData.isInteractive) return false // Not interactive, definitely don't highlight
+
+		/**
+		 * @edit add `data-page-agent-readonly` attribute
+		 * Withhold the click index for this element and everything under it,
+		 * but keep the node in the tree so its text still reaches the LLM.
+		 * Ancestor-or-self match => whole subtree is covered without threading a flag.
+		 */
+		if (node.closest?.('[data-page-agent-readonly="true"]')) return false
 
 		let shouldHighlight = false
 		if (!isParentHighlighted) {
