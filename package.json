@@ -33,6 +33,7 @@
         "build:libs": "node scripts/build-libs.js",
         "build:website": "npm run build:website --workspace=@page-agent/website",
         "build:ext": "npm run zip -w @page-agent/ext",
+        "build:release": "node scripts/build-release.js",
         "version": "node scripts/sync-version.js",
         "postpublish": "npm run postpublish --workspaces --if-present",
         "typecheck": "tsc --noEmit -p tsconfig.typecheck.json && tsc --noEmit -p packages/extension/tsconfig.json",
