@@ -481,6 +481,9 @@ export class PageAgentCore extends EventTarget {
 			'zh-CN': '中文',
 			'fr-FR': 'Français',
 			'es-ES': 'Español',
+			'de-DE': 'Deutsch',
+			'it-IT': 'Italiano',
+			'pt-BR': 'Português (Brasil)',
 		}
 		const targetLanguage = languageNames[this.config.language ?? ''] ?? 'English'
 		const systemPrompt = SYSTEM_PROMPT.replace(

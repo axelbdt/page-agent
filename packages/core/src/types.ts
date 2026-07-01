@@ -5,7 +5,7 @@ import type { PageAgentCore } from './PageAgentCore'
 import type { PageAgentTool } from './tools'
 
 /** Supported UI languages */
-export type SupportedLanguage = 'en-US' | 'zh-CN' | 'fr-FR' | 'es-ES'
+export type SupportedLanguage = 'en-US' | 'zh-CN' | 'fr-FR' | 'es-ES' | 'de-DE' | 'it-IT' | 'pt-BR'
 
 export interface AgentConfig extends LLMConfig {
 	language?: SupportedLanguage
@@ -255,7 +255,11 @@ export interface AgentErrorEvent {
  * Union type for all history events
  */
 export type HistoricalEvent =
-	AgentStepEvent | ObservationEvent | UserTakeoverEvent | RetryEvent | AgentErrorEvent
+	| AgentStepEvent
+	| ObservationEvent
+	| UserTakeoverEvent
+	| RetryEvent
+	| AgentErrorEvent
 
 /**
  * Agent lifecycle status.
