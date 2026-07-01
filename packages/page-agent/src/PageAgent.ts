@@ -4,11 +4,26 @@
  */
 import { type AgentConfig, PageAgentCore } from '@page-agent/core'
 import { PageController, type PageControllerConfig } from '@page-agent/page-controller'
-import { Panel, type PanelConfig } from '@page-agent/ui'
+import {
+	Panel,
+	type PanelConfig,
+	type SupportedLanguage as PanelLanguage,
+	locales,
+} from '@page-agent/ui'
 
 export * from '@page-agent/core'
 
 export type PageAgentConfig = AgentConfig & PageControllerConfig & Omit<PanelConfig, 'language'>
+
+/**
+ * Map the agent config language onto a language the panel UI actually ships.
+ * Unsupported languages fall back to English so the panel never renders
+ * untranslated keys.
+ */
+function resolvePanelLanguage(language: AgentConfig['language']): PanelLanguage {
+	const panelLanguages = Object.keys(locales) as PanelLanguage[]
+	return panelLanguages.find((candidate) => candidate === language) ?? 'en-US'
+}
 
 export class PageAgent extends PageAgentCore {
 	panel: Panel
@@ -22,7 +37,7 @@ export class PageAgent extends PageAgentCore {
 		super({ ...config, pageController })
 
 		this.panel = new Panel(this, {
-			language: config.language === 'zh-CN' ? 'zh-CN' : 'en-US',
+			language: resolvePanelLanguage(config.language),
 			promptForNextTask: config.promptForNextTask,
 		})
 	}
