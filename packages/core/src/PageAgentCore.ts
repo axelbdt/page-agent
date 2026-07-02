@@ -495,12 +495,25 @@ export class PageAgentCore extends EventTarget {
 	}
 
 	/**
-	 * Get instructions from config
+	 * App-wide instructions (`instructions.system`) that stay constant for the
+	 * whole run. Kept in the stable prompt prefix so the provider's prompt-prefix
+	 * cache can cover it and everything before the volatile page context.
 	 */
-	async #getInstructions(): Promise<string> {
+	#getSystemInstructions(): string {
+		const systemInstructions = this.config.instructions?.system?.trim()
+		if (!systemInstructions) return ''
+		return `<system_instructions>\n${systemInstructions}\n</system_instructions>\n\n`
+	}
+
+	/**
+	 * Page-specific context (`instructions.getPageInstructions(url)` and llms.txt),
+	 * keyed on the current URL. This changes on navigation, so it lives in the
+	 * volatile suffix, next to <browser_state>, to avoid invalidating the cached
+	 * prefix on every step.
+	 */
+	async #getPageContext(): Promise<string> {
 		const { instructions, experimentalLlmsTxt } = this.config
 
-		const systemInstructions = instructions?.system?.trim()
 		let pageInstructions: string | undefined
 
 		const url = this.#states.browserState?.url || ''
@@ -517,13 +530,9 @@ export class PageAgentCore extends EventTarget {
 
 		const llmsTxt = experimentalLlmsTxt && url ? await fetchLlmsTxt(url) : undefined
 
-		if (!systemInstructions && !pageInstructions && !llmsTxt) return ''
+		if (!pageInstructions && !llmsTxt) return ''
 
-		let result = '<instructions>\n'
-
-		if (systemInstructions) {
-			result += `<system_instructions>\n${systemInstructions}\n</system_instructions>\n`
-		}
+		let result = '<page_context>\n'
 
 		if (pageInstructions) {
 			result += `<page_instructions>\n${pageInstructions}\n</page_instructions>\n`
@@ -533,7 +542,7 @@ export class PageAgentCore extends EventTarget {
 			result += `<llms_txt>\n${llmsTxt}\n</llms_txt>\n`
 		}
 
-		result += '</instructions>\n\n'
+		result += '</page_context>\n\n'
 
 		return result
 	}
@@ -589,26 +598,27 @@ export class PageAgentCore extends EventTarget {
 
 		let prompt = ''
 
-		// <instructions> (optional)
-
-		prompt += await this.#getInstructions()
+		// The prompt is ordered by volatility so the provider's prompt-prefix cache
+		// covers as much as possible:
+		//   1. <agent_state>          — the user request, constant for the whole run
+		//   2. <system_instructions>  — app-wide guidance, constant for the whole run
+		//   3. <agent_history>        — append-only, so the cached prefix keeps growing
+		//   4. <page_context>         — URL-keyed, changes only on navigation
+		//   5. <browser_state>        — changes every step
+		//   6. <step_info>            — changes every step
 
 		// <agent_state>
 		//  - <user_request>
-		//  - <step_info>
-		// <agent_state>
-
-		const stepCount = this.history.filter((e) => e.type === 'step').length
 
 		prompt += '<agent_state>\n'
 		prompt += '<user_request>\n'
 		prompt += `${this.task}\n`
 		prompt += '</user_request>\n'
-		prompt += '<step_info>\n'
-		prompt += `Step ${stepCount + 1} of ${this.config.maxSteps} max possible steps\n`
-		prompt += `Current time: ${new Date().toLocaleString()}\n`
-		prompt += '</step_info>\n'
 		prompt += '</agent_state>\n\n'
+
+		// <system_instructions> (optional, constant across steps)
+
+		prompt += this.#getSystemInstructions()
 
 		// <agent_history>
 		//  - <step_N> for steps
@@ -638,6 +648,10 @@ export class PageAgentCore extends EventTarget {
 
 		prompt += '</agent_history>\n\n'
 
+		// <page_context> (optional, URL-keyed — changes only on navigation)
+
+		prompt += await this.#getPageContext()
+
 		// <browser_state>
 
 		let pageContent = browserState.content
@@ -650,6 +664,14 @@ export class PageAgentCore extends EventTarget {
 		prompt += pageContent + '\n'
 		prompt += browserState.footer + '\n\n'
 		prompt += '</browser_state>\n\n'
+
+		// <step_info> (volatile, kept last for cache-friendliness)
+
+		const stepCount = this.history.filter((e) => e.type === 'step').length
+
+		prompt += '<step_info>\n'
+		prompt += `Step ${stepCount + 1} of ${this.config.maxSteps} max possible steps\n`
+		prompt += '</step_info>\n'
 
 		return prompt
 	}

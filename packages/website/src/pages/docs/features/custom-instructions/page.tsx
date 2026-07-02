@@ -97,25 +97,32 @@ This is the product listing page.
 
 				<p className="text-gray-600 dark:text-gray-300 mb-4">
 					{isZh
-						? '在每个执行步骤之前，page-agent 会将 instructions 拼接到用户提示词中：'
-						: 'Before each execution step, page-agent prepends the instructions to the user prompt:'}
+						? '在每个执行步骤中，page-agent 会按“稳定性”顺序组装用户提示词，以便供应商的提示词前缀缓存尽可能命中。常量的 system 指令靠前，随页面变化的 page 指令放在靠近页面内容处：'
+						: "On each step, page-agent assembles the user prompt in order of volatility so the provider's prompt-prefix cache can hit as often as possible. The constant system guidance goes near the top; the URL-specific page guidance sits later, next to the page content:"}
 				</p>
 
 				<CodeEditor
 					language="xml"
 					className="mb-6"
-					code={`<instructions>
+					code={`<agent_state>
+<user_request>...</user_request>
+</agent_state>
+
 <system_instructions>
 You are a professional e-commerce assistant.
 ...
 </system_instructions>
+
+<!-- agent history (append-only) -->
+
+<page_context>
 <page_instructions>
 This is the checkout page.
 ...
 </page_instructions>
-</instructions>
+</page_context>
 
-<!-- followed by agent state, history, and browser state -->`}
+<!-- followed by browser state and step info -->`}
 				/>
 
 				<ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-400">
