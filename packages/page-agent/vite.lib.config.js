@@ -31,7 +31,16 @@ const aliases = workspacePackages.map((pkg) => {
 export default defineConfig({
 	clearScreen: false,
 	resolve: { alias: aliases },
-	plugins: [cssInjectedByJsPlugin({ relativeCSSInjection: true })],
+	plugins: [
+		cssInjectedByJsPlugin({
+			relativeCSSInjection: true,
+			// Append the style-injection IIFE instead of prepending it. A chunk that starts
+			// with `(` merges with a consumer's semicolon-less banner via ASI — e.g.
+			// vite-plugin-node-polyfills' `globalThis.process = globalThis.process || __process_polyfill`
+			// in dev pre-bundling — so the IIFE never runs and the panel renders unstyled.
+			topExecutionPriority: false,
+		}),
+	],
 	publicDir: false,
 	build: {
 		lib: {
