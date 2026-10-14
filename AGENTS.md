@@ -128,10 +128,12 @@ const pageInfo = await this.pageController.getPageInfo()
 
 ## Testing
 
+- **Test value**: Do not add redundant tests or directly translate implementation code into assertions. Test meaningful behavior and realistic failure modes.
 - **Framework**: Vitest (unit tests only for now; future E2E goes to `packages/e2e/` with Playwright)
 - **Location**: co-located, `src/foo.test.ts` next to `src/foo.ts`
 - **Coverage today**: `packages/llms` only — other packages will follow incrementally
 - **Adding tests to a new package**: create `vitest.config.ts` in the package and add a `"test": "vitest run"` script. Root `npm test` and `node scripts/ci.js` pick it up through npm workspaces.
+- **Live tests** (hit real external APIs, slow/costly): name them `*.live.test.ts`, exclude them from the package's `test` script, and expose them via a `test:live` script. Root `npm run test:live` runs all of them; they never run in `npm test` or CI. Template: `packages/llms`.
 - **Template**: See @page-agent/llms
 
 ```bash
